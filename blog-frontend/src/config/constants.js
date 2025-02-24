@@ -8,8 +8,9 @@ export const MODULES = {
   BLOGS: {
     LISTING: "posts",
     CREATE: "post/create",
-    EDIT: "post/edit",
-    VIEW: "post/view",
+    EDIT: "post/update",
+    VIEW: "post",
     DELETE: "post/delete",
-  }
+  },
+  PULSE_CHECK: "/heartbeat",
 };

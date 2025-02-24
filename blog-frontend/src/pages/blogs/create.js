@@ -6,6 +6,7 @@ import { postSchema } from "../../config/validationSchema";
 import { useSelector } from "react-redux";
 import { create } from "../../services/blog.services";
 import { toast } from "sonner";
+import layout from "../../components/layout";
 
 const Create = () => {
   const auth = useSelector((state) => state.auth);
@@ -97,4 +98,4 @@ const Create = () => {
     </div>
   );
 };
-export default Create;
+export default layout(Create);

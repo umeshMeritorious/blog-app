@@ -12,17 +12,23 @@ mongoose
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.log(err));
 
-const userSchema = new mongoose.Schema({
-  username: String,
-  password: String,
-});
+const userSchema = new mongoose.Schema(
+  {
+    username: String,
+    password: String,
+  },
+  { timestamps: true }
+);
 const Users = mongoose.model("User", userSchema);
 
-const postSchema = new mongoose.Schema({
-  title: String,
-  content: String,
-  posted_by: { type: mongoose.Types.ObjectId, ref: "User" },
-});
+const postSchema = new mongoose.Schema(
+  {
+    title: String,
+    content: String,
+    posted_by: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true }
+);
 
 const Post = mongoose.model("Post", postSchema);
 
@@ -63,7 +69,9 @@ app.get("/", (request, response) => {
   response.send("Welcome!!");
 });
 
-app.use(authenticateJWT);
+app.get("/heartbeat", authenticateJWT, async (req, res) => {
+  res.json({ beat: true });
+});
 
 app.get("/posts", async (req, res) => {
   try {
@@ -73,11 +81,21 @@ app.get("/posts", async (req, res) => {
     limit = parseInt(limit) || 10;
     const skip = (page - 1) * limit;
 
-    const posts = await Post.find().skip(skip).limit(limit);
+    const posts = await Post.find()
+      .populate({
+        path: "posted_by",
+        select: "username",
+        options: { strictPopulate: false },
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
     const totalPosts = await Post.countDocuments();
 
+    const totalPages = Math.ceil(totalPosts / limit);
+
     res.status(200).json({
-      currentPage: page,
+      currentPage: page > totalPages ? totalPages : page,
       totalPages: Math.ceil(totalPosts / limit),
       totalPosts,
       posts,
@@ -87,7 +105,7 @@ app.get("/posts", async (req, res) => {
   }
 });
 
-app.post("/post/create", async (req, res) => {
+app.post("/post/create", authenticateJWT, async (req, res) => {
   try {
     const post = new Post(req.body);
     await post.save();
@@ -97,20 +115,12 @@ app.post("/post/create", async (req, res) => {
   }
 });
 
-app.get("/post/get/:id", async (req, res) => {
+app.get("/post/:id", async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: "Post not found" });
-    res.json(post);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-app.put("/post/update/:id", async (req, res) => {
-  try {
-    const post = await Post.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
+    const post = await Post.findById(req.params.id).populate({
+      path: "posted_by",
+      select: "username",
+      options: { strictPopulate: false },
     });
     if (!post) return res.status(404).json({ message: "Post not found" });
     res.json(post);
@@ -119,11 +129,23 @@ app.put("/post/update/:id", async (req, res) => {
   }
 });
 
-app.delete("/post/delete/:id", async (req, res) => {
+app.put("/post/update/:id", authenticateJWT, async (req, res) => {
+  try {
+    const post = await Post.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    if (!post) return res.status(404).json({ message: "Post not found" });
+    res.status(200).json({ message: "Post updated successfully", post });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.delete("/post/delete/:id", authenticateJWT, async (req, res) => {
   try {
     const post = await Post.findByIdAndDelete(req.params.id);
     if (!post) return res.status(404).json({ message: "Post not found" });
-    res.json({ message: "Post deleted successfully" });
+    res.status(204).json({ message: "Post deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

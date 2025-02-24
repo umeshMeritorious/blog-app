@@ -1,5 +1,7 @@
 import axios from "axios";
-import { API_BASE_URL } from "../config/constants";
+import { API_BASE_URL, MODULES } from "../config/constants";
+import { store } from "../store/store";
+import { tokenExpiryRedirection } from "../config/utilities";
 
 const http = axios.create({
   baseURL: API_BASE_URL,
@@ -8,5 +10,9 @@ const http = axios.create({
     Accept: "application/json",
   },
 });
+
+export const checkPulse = () => {
+  http.get(MODULES.PULSE_CHECK).catch(tokenExpiryRedirection);
+};
 
 export { http };

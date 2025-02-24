@@ -18,8 +18,8 @@ const Login = (props) => {
             <h1 className="text-4xl font-bold text-primary mb-2">LOGIN</h1>
             <Formik
               initialValues={{
-                username: "",
-                password: "",
+                username: "admin",
+                password: "password",
               }}
               validationSchema={login}
               onSubmit={(values) => {
